@@ -1,108 +1,39 @@
-# Лабораторная 2. Доставка Runbook Search API
+# Лабораторная 2. Runbook Search API
 
-Runbook Search API ищет по базе инженерных инструкций. Индекс объединяет TF-IDF по словам и символьным n-граммам, а результаты ранжируются по косинусной близости. Docker собирает индекс и проверяет его качество на этапе сборки. Контейнер запускается от непривилегированного пользователя и читает индекс из образа. В Kubernetes корневая файловая система контейнера доступна только для чтения.
+Сервис ищет по базе инженерных инструкций. Индекс TF-IDF собирается и проверяется при сборке Docker-образа. В API доступны поиск, рекомендации, метаданные `/meta` и метрики `/metrics`.
 
 ## Локальная проверка
 
-Запустите команды из каталога `lab2` с Python 3.12, Make и Docker Compose.
+Команды из каталога `lab2` для Python 3.12 и Docker Compose.
 
 ```bash
 make test quality negative
 make up
 make smoke
-curl -fsS http://127.0.0.1:18080/meta
-curl -fsS http://127.0.0.1:18080/metrics
 make down
 ```
 
-Quality gate требует MRR ≥ 0.85 и Recall@3 ≥ 0.90. `make negative` проверяет, что обратное ранжирование формирует JSON-отчёт и завершается кодом 2. Метаданные индекса и оба отчёта записываются в `artifacts/`.
+Прошли три теста API. Пороги качества составляют 0.85 для MRR и 0.90 для Recall@3. Обе метрики в режиме `normal` составили 0.9375, в режиме `reverse` — 0.0. Проверка отклонила `reverse` с кодом 2. [Метаданные индекса](evidence/metadata.json) · [Отчёт normal](evidence/quality.json) · [Отчёт reverse](evidence/quality-reverse.json)
 
-При локальной проверке обе метрики составили 0.9375 в режиме normal и 0.0 в режиме reverse. Отчёты и метаданные сохранены в [evidence/](evidence/).
+Оба режима проверены в Docker Compose на учебной ВМ. `/readyz` вернул HTTP 200 в каждом режиме, хотя первым результатом запроса об откате был `doc-rollback` в `normal` и `doc-security` в `reverse`. Поэтому проверка готовности дополняется проверкой результата поиска.
 
-Чтобы изменить порт нормального сервиса, задайте одинаковый `SEARCH_PORT` для `make up` и `make smoke`. У reverse-сервиса в Compose порт задаётся отдельно через `REVERSE_PORT` (по умолчанию 18081).
+Образ `docker.io/jairman/ovsyannikov-runbook-search:v1` опубликован в Docker Hub. [Ссылка и digest](evidence/published-image.json)
 
-Для проверки `reverse` в контейнере соберите один образ и запустите оба режима из этого образа.
+## CI/CD
 
-```bash
-docker compose build search
-docker compose --profile negative up -d --no-build --wait search bad-ranking
-python3 scripts/smoke_local.py --base-url "http://127.0.0.1:${SEARCH_PORT:-18080}"
-python3 scripts/smoke_local.py --base-url "http://127.0.0.1:${REVERSE_PORT:-18081}"
-# Для второго запроса ожидается код завершения 2.
-docker compose --profile negative down
-```
+[GitHub Actions](../.github/workflows/search-delivery.yml) проверяет тесты и качество на pull request. Запуск из `main` собирает образ и публикует его с тегом SHA коммита при наличии `DOCKERHUB_TOKEN`. Секрет `KUBE_CONFIG_B64` содержит выданный kubeconfig в base64 и включает развёртывание. После добавления секрета нужен новый запуск **Run workflow** из `main`. Production требует ручного одобрения в GitHub Environment `production`.
 
-Основные маршруты API — `POST /v1/search`, `GET /v1/documents/{id}/recommendations`, `GET /livez`, `GET /readyz`, `GET /meta`, `GET /metrics` и `GET /docs`.
+В [запуске CI](https://github.com/Ja1rman/mlops/actions/runs/42413026661) прошли проверки и опубликован образ. В артефактах `search-quality` и `search-image` сохранены отчёты, метаданные и digest. Staging и production пропущены без kubeconfig. Проверки в учебном кластере отложены из-за тайм-аута API.
 
-## Результаты проверки
+## Kubernetes и откат
 
-Прошли три теста API. Индекс `147d82cfd724` получил MRR `0.9375` и Recall@3 `0.9375`. В режиме `reverse` обе метрики равны `0.0`, quality gate завершился с кодом `2`. Сохранены [метаданные индекса](evidence/metadata.json), [отчёт normal](evidence/quality.json) и [отчёт reverse](evidence/quality-reverse.json).
+Helm использует namespace `mlops-students`, драйвер `configmap` и релизы `ovsyannikov-search-staging` и `ovsyannikov-search-prod`. Workflow передаёт обоим окружениям одну ссылку на образ в формате `repository@sha256:digest`. Chart отклоняет пустой и некорректный digest.
 
-В Docker Compose на учебной ВМ один и тот же образ запустился в обоих режимах. `/readyz` вернул `ready` в каждом режиме. Для контрольного запроса первым результатом был `doc-rollback` в `normal` и `doc-security` в `reverse`. Semantic smoke завершился с кодом `2` для `reverse`.
-
-Образ, проверенный на ВМ, опубликован с тегом `v1`. Его [ссылка и digest](evidence/published-image.json) получены после `docker push`. Доступ к манифесту образа проверен без учётных данных.
-
-## Развёртывание в учебном кластере
-
-В namespace `mlops-students` используются Helm releases `ovsyannikov-search-staging` и `ovsyannikov-search-prod`. Для работы на учебной ВМ понадобятся выданный kubeconfig, Helm 4, kubectl, jq и Python 3.10 или новее. Манифест использует `ClusterIP` и ссылку на образ формата `repository@sha256:digest`. Пустой или некорректный digest останавливает рендеринг.
+Команды для ручного запуска из `lab2` с рабочим `KUBECONFIG`. Для `IMAGE_REPOSITORY`, `IMAGE_DIGEST` и `BUILD_REVISION` используются поля `repository`, `digest` и `tag` из `image.json` артефакта `search-image`.
 
 ```bash
-export KUBECONFIG=/path/to/mlops-students.kubeconfig
-export HELM_DRIVER=configmap
-kubectl auth can-i get pods -n mlops-students
-helm list -n mlops-students --filter '^ovsyannikov-search-'
+./scripts/deploy_release.sh staging "$IMAGE_REPOSITORY" "$IMAGE_DIGEST" "$BUILD_REVISION"
+./scripts/deploy_release.sh production "$IMAGE_REPOSITORY" "$IMAGE_DIGEST" "$BUILD_REVISION"
 ```
 
-Если обе команды завершаются тайм-аутом, проверьте с преподавателем адрес API в kubeconfig и доступ к нему с учебной ВМ.
-
-Для ручной сборки и публикации войдите в Docker Hub с правом записи в публичный репозиторий `jairman/ovsyannikov-runbook-search` и выполните команды из `lab2`.
-
-```bash
-export IMAGE_REPOSITORY=docker.io/jairman/ovsyannikov-runbook-search
-export BUILD_REVISION="$(git rev-parse HEAD)"
-docker login --username jairman
-mkdir -p artifacts
-docker buildx build --platform linux/amd64 --push \
-  --tag "${IMAGE_REPOSITORY}:${BUILD_REVISION}" --metadata-file artifacts/image-build.json .
-export IMAGE_DIGEST="$(jq -er '."containerimage.digest"' artifacts/image-build.json)"
-```
-
-Передайте имя своего опубликованного репозитория образов, digest и ревизию исходного кода. Перед развёртыванием скрипт выполняет `helm lint` и `helm template`. Он ждёт готовности, запускает `helm test`, проверяет образ Deployment и делает внешний запрос к API через `kubectl port-forward`. Перед изменением production скрипт заново проверяет живой staging, включая ссылку на образ, ревизию сборки из `/meta` и ожидаемый первый результат поиска.
-
-```bash
-set -o pipefail
-# IMAGE_REPOSITORY, IMAGE_DIGEST и BUILD_REVISION относятся к одному образу.
-./scripts/deploy_release.sh staging "$IMAGE_REPOSITORY" "$IMAGE_DIGEST" "$BUILD_REVISION" \
-  2>&1 | tee staging.log
-
-# После проверки staging и согласования promotion.
-./scripts/deploy_release.sh production "$IMAGE_REPOSITORY" "$IMAGE_DIGEST" "$BUILD_REVISION" --reverse-drill \
-  2>&1 | tee production.log
-```
-
-Для обычного promotion уберите флаг `--reverse-drill`. С ним скрипт сначала проверяет production с `rankingMode=normal` и сохраняет номер успешной Helm-ревизии. Затем он применяет `rankingMode=reverse` с тем же digest, проверяет readiness и ожидает неверный первый результат поиска. После проверки скрипт выполняет `helm rollback` и повторяет semantic smoke. Запускайте развёртывания последовательно.
-
-В конце успешного promotion или проверки отката скрипт сверяет образы обоих Deployment с опубликованным digest, проверяет `/meta` и результаты поиска в обоих окружениях. Блок `Final staging and production verification` в журнале фиксирует результаты, а при учебном откате там же сохраняется история Helm.
-
-`/readyz` подтверждает, что процесс загрузил индекс и может принимать запросы. При обратном ранжировании он отвечает HTTP 200, хотя первым возвращается нерелевантный документ. Semantic smoke проверяет, что на запрос об откате первым найден `doc-rollback`.
-
-## GitHub Actions
-
-Загрузите `lab1/`, `lab2/` и корневой каталог `.github/` в один публичный репозиторий с веткой `main`. GitHub читает workflow из [корня репозитория](../.github/workflows/search-delivery.yml).
-
-1. Создайте публичный репозиторий образов `jairman/ovsyannikov-runbook-search` в Docker Hub. Добавьте repository Actions secret `DOCKERHUB_TOKEN` с токеном пользователя `jairman`, у которого есть право публиковать образы. [Документация Docker Hub](https://docs.docker.com/docker-hub/repos/manage/create/)
-2. Откройте **Actions → Runbook Search delivery → Run workflow** и выберите `main`. При настроенном `DOCKERHUB_TOKEN` образ публикуется и workflow сохраняет артефакт `search-image`. Пока `KUBE_CONFIG_B64` отсутствует, staging и production показываются как **Skipped** с пояснением в сводке запуска.
-3. В **Settings → Environments** создайте `production`, настройте **Required reviewers** и разрешите деплой из `main`. GitHub запустит задание `production` после ручного одобрения. [Документация GitHub](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments)
-4. Добавьте repository Actions secret `KUBE_CONFIG_B64` со значением выданного kubeconfig в base64. Используйте конфигурацию с вложенными сертификатами и ключами, доступную с GitHub runner. Декодированная конфигурация хранится во временном файле на время шага deploy. [Документация GitHub](https://docs.github.com/en/actions/reference/security/secrets)
-5. После добавления секрета начните новый запуск через **Run workflow** на `main`. Для проверки отката включите `reverse_drill`. После успешного staging подтвердите production в **Review deployments**.
-
-Pull request выполняет тесты и обе проверки качества. Push изменений лабораторной или её workflow в `main` и ручной запуск на `main` дополнительно собирают образ `linux/amd64`. При настроенном `DOCKERHUB_TOKEN` образ публикуется с тегом SHA коммита. Каждый запуск с настроенным Kubernetes передаёт один digest в staging и production. Параллельные доставки на одной ветке сериализуются на уровне workflow.
-
-| Артефакт Actions | Содержимое |
-| --- | --- |
-| `search-quality` | Метаданные индекса, отчёт normal и отчёт заблокированного reverse |
-| `search-image` | Репозиторий образа, тег и digest |
-| `search-staging` | Образ Deployment, Helm test и semantic smoke с `/meta` |
-| `search-production` | Итоговые образы Deployment, `/meta` и semantic smoke обоих окружений, при включённом drill — история Helm и подтверждение отката |
-
-Для сдачи приложите ссылку на публичный репозиторий и запуск workflow с этими артефактами.
+Перед продвижением проверяются живой staging, `/meta` и результат контрольного поиска. Режим `reverse_drill` в Actions или флаг `--reverse-drill` в скрипте переключает production на обратное ранжирование с тем же digest. При сбое проверки качества выполняется `helm rollback` к проверенной ревизии. Итоговая проверка сверяет образы Deployment, `/meta` и результаты поиска обоих окружений. Журналы `search-staging` и `search-production` сохраняют результаты проверок, а журнал production при учебном откате содержит историю Helm.
