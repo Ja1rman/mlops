@@ -1,0 +1,98 @@
+{
+  "ranking_mode": "reverse",
+  "mrr": 0.0,
+  "recall_at_3": 0.0,
+  "cases": [
+    {
+      "query": "как вернуть предыдущую модель после плохого релиза",
+      "top3": [
+        "doc-security",
+        "doc-features",
+        "doc-data"
+      ],
+      "relevant": [
+        "doc-rollback"
+      ]
+    },
+    {
+      "query": "pod запущен но трафик на него не идет readiness",
+      "top3": [
+        "doc-rollback",
+        "doc-drift",
+        "doc-security"
+      ],
+      "relevant": [
+        "doc-probes"
+      ]
+    },
+    {
+      "query": "как хранить пароль registry и ограничить права",
+      "top3": [
+        "doc-features",
+        "doc-data",
+        "doc-ci"
+      ],
+      "relevant": [
+        "doc-security"
+      ]
+    },
+    {
+      "query": "почему HTTP 200 есть а поиск стал хуже",
+      "top3": [
+        "doc-container",
+        "doc-data",
+        "doc-rollback"
+      ],
+      "relevant": [
+        "doc-drift",
+        "doc-observability"
+      ]
+    },
+    {
+      "query": "один и тот же образ перенести из staging в production",
+      "top3": [
+        "doc-canary",
+        "doc-drift",
+        "doc-rollback"
+      ],
+      "relevant": [
+        "doc-ci",
+        "doc-container"
+      ]
+    },
+    {
+      "query": "реплики по загрузке процессора requests limits",
+      "top3": [
+        "doc-observability",
+        "doc-security",
+        "doc-canary"
+      ],
+      "relevant": [
+        "doc-scaling"
+      ]
+    },
+    {
+      "query": "связать модель данные commit и метрики",
+      "top3": [
+        "doc-features",
+        "doc-security",
+        "doc-drift"
+      ],
+      "relevant": [
+        "doc-registry",
+        "doc-data"
+      ]
+    },
+    {
+      "query": "маленькая доля трафика новой версии модели",
+      "top3": [
+        "doc-security",
+        "doc-features",
+        "doc-drift"
+      ],
+      "relevant": [
+        "doc-canary"
+      ]
+    }
+  ]
+}

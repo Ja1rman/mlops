@@ -1,0 +1,10 @@
+{
+  "artifact_schema": "runbook-search-index/v1",
+  "model_name": "runbook-hybrid-tfidf",
+  "model_type": "tfidf-word-char-cosine",
+  "model_revision": "hybrid-char-weighted-v2",
+  "index_version": "147d82cfd724",
+  "corpus_sha256": "67bbb1c2dcea4cbe972b3ce4625b30a82e9930bfd4c94a17a45f6ae2a7411ca9",
+  "documents": 12,
+  "features": 4068
+}

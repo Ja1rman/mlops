@@ -1,0 +1,20 @@
+replicaCount: 1
+environment: staging
+rankingMode: normal
+buildRevision: unknown
+
+image:
+  repository: ""
+  digest: ""
+  pullPolicy: IfNotPresent
+
+resources:
+  requests:
+    cpu: 150m
+    memory: 256Mi
+  limits:
+    cpu: 750m
+    memory: 768Mi
+
+service:
+  port: 80

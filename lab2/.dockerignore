@@ -1,0 +1,11 @@
+.git
+.venv
+.pytest_cache
+**/__pycache__
+artifacts
+*.kubeconfig
+quality-report.json
+reverse-quality-report.json
+.env
+*.log
+

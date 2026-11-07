@@ -1,0 +1,93 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ovsyannikov-iris
+  namespace: mlops-students
+  labels:
+    app.kubernetes.io/name: iris
+    app.kubernetes.io/instance: ovsyannikov-iris
+data:
+  MODEL_PATH: /app/model.joblib
+  MODEL_VERSION: iris-v1
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ovsyannikov-iris
+  namespace: mlops-students
+  labels:
+    app.kubernetes.io/name: iris
+    app.kubernetes.io/instance: ovsyannikov-iris
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: iris
+      app.kubernetes.io/instance: ovsyannikov-iris
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: iris
+        app.kubernetes.io/instance: ovsyannikov-iris
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: iris
+          image: docker.io/jairman/ovsyannikov-iris:v1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: ovsyannikov-iris
+          startupProbe:
+            httpGet:
+              path: /live
+              port: http
+            periodSeconds: 2
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /live
+              port: http
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            readOnlyRootFilesystem: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ovsyannikov-iris
+  namespace: mlops-students
+  labels:
+    app.kubernetes.io/name: iris
+    app.kubernetes.io/instance: ovsyannikov-iris
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: iris
+    app.kubernetes.io/instance: ovsyannikov-iris
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
