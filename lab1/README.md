@@ -97,7 +97,7 @@ Workflow **Iris CI** собирает образ и проверяет API в Do
 base64 < kubeconfig.yaml | tr -d '\n' | gh secret set KUBE_CONFIG_B64 --repo Ja1rman/mlops
 ```
 
-Откройте **Actions → Iris CI → Run workflow**, выберите `main` и включите `deploy`. После проверки контейнера workflow выполнит серверный dry-run, применит манифест с образом `docker.io/jairman/ovsyannikov-iris:v1`, дождётся Deployment и проверит `/health` и два предсказания через Service. При пустом секрете workflow сообщит о пропуске развёртывания.
+Откройте **Actions → Iris CI → Run workflow**, выберите `main` и включите `deploy`. После проверки контейнера workflow выполнит серверный dry-run, применит манифест с образом `docker.io/jairman/ovsyannikov-iris:v1`, дождётся Deployment и проверит `/live`, `/health` и все три предсказания через Service. При пустом секрете workflow сообщит о пропуске развёртывания.
 
 ## Результаты проверки
 
