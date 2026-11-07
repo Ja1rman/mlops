@@ -87,6 +87,18 @@ kubectl -n mlops-students port-forward svc/ovsyannikov-iris 18001:80
 
 В отдельном терминале на той же машине повторите проверку API с `BASE_URL=http://127.0.0.1:18001`.
 
+## GitHub Actions
+
+Workflow **Iris CI** собирает образ и проверяет API в Docker при изменениях лабораторной в `main`, в pull request в `main` и при ручном запуске. Для этих проверок достаточно файлов репозитория. [Workflow](../.github/workflows/iris-ci.yml)
+
+Когда появится доступ к кластеру, добавьте `KUBE_CONFIG_B64` в **Settings → Secrets and variables → Actions → New repository secret**. Значение секрета — kubeconfig в base64 со встроенными сертификатами и ключами. API Kubernetes должен быть доступен с GitHub runner, а учётная запись в kubeconfig должна иметь доступ к ресурсам лабораторной в `mlops-students`. Установить секрет через GitHub CLI можно из файла `kubeconfig.yaml`.
+
+```bash
+base64 < kubeconfig.yaml | tr -d '\n' | gh secret set KUBE_CONFIG_B64 --repo Ja1rman/mlops
+```
+
+Откройте **Actions → Iris CI → Run workflow**, выберите `main` и включите `deploy`. После проверки контейнера workflow выполнит серверный dry-run, применит манифест с образом `docker.io/jairman/ovsyannikov-iris:v1`, дождётся Deployment и проверит `/health` и два предсказания через Service. При пустом секрете workflow сообщит о пропуске развёртывания.
+
 ## Результаты проверки
 
 На учебной ВМ `train.py` создал модель, а Uvicorn и Docker-контейнер вернули `ready` и классы `0`, `1`, `2` на контрольных примерах. Контейнер прошёл проверку с UID `10001`, корневой файловой системой только для чтения, лимитом `256 MiB` и `0,5 CPU`. Три ресурса из манифеста прошли проверку схем Kubernetes через `kubeconform`.

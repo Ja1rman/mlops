@@ -90,12 +90,13 @@ set -o pipefail
 
 Загрузите `lab1/`, `lab2/` и корневой каталог `.github/` в один публичный репозиторий с веткой `main`. GitHub читает workflow из [корня репозитория](../.github/workflows/search-delivery.yml).
 
-1. В **Settings → Environments** создайте `production`, настройте **Required reviewers** и разрешите деплой из `main`. Перед продвижением workflow проверяет, что в истории запуска есть одобрение для `production`. [Документация GitHub](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments)
-2. Добавьте repository Actions secret `KUBE_CONFIG_B64` со значением выданного kubeconfig в base64. Используйте конфигурацию с вложенными сертификатами и ключами, доступную с GitHub runner. Декодированная конфигурация хранится во временном файле на время шага deploy. [Документация GitHub](https://docs.github.com/en/actions/reference/security/secrets)
-3. Создайте публичный репозиторий образов `jairman/ovsyannikov-runbook-search` в Docker Hub. Добавьте repository Actions secret `DOCKERHUB_TOKEN` с токеном пользователя `jairman`, у которого есть право публиковать образы. [Документация Docker Hub](https://docs.docker.com/docker-hub/repos/manage/create/)
-4. В **Actions → Runbook Search delivery** запустите workflow на `main`. Для проверки отката включите `reverse_drill`. После успешного staging подтвердите production в **Review deployments**.
+1. Создайте публичный репозиторий образов `jairman/ovsyannikov-runbook-search` в Docker Hub. Добавьте repository Actions secret `DOCKERHUB_TOKEN` с токеном пользователя `jairman`, у которого есть право публиковать образы. [Документация Docker Hub](https://docs.docker.com/docker-hub/repos/manage/create/)
+2. Откройте **Actions → Runbook Search delivery → Run workflow** и выберите `main`. При настроенном `DOCKERHUB_TOKEN` образ публикуется и workflow сохраняет артефакт `search-image`. Пока `KUBE_CONFIG_B64` отсутствует, staging и production показываются как **Skipped** с пояснением в сводке запуска.
+3. В **Settings → Environments** создайте `production`, настройте **Required reviewers** и разрешите деплой из `main`. Перед продвижением workflow проверяет, что в истории запуска есть одобрение для `production`. [Документация GitHub](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments)
+4. Добавьте repository Actions secret `KUBE_CONFIG_B64` со значением выданного kubeconfig в base64. Используйте конфигурацию с вложенными сертификатами и ключами, доступную с GitHub runner. Декодированная конфигурация хранится во временном файле на время шага deploy. [Документация GitHub](https://docs.github.com/en/actions/reference/security/secrets)
+5. После добавления секрета начните новый запуск через **Run workflow** на `main`. Для проверки отката включите `reverse_drill`. После успешного staging подтвердите production в **Review deployments**.
 
-Pull request выполняет тесты и обе проверки качества. Push в `main` дополнительно собирает образ `linux/amd64`. Ручной запуск на `main` публикует образ с тегом SHA коммита и передаёт один digest в staging и production. Параллельные доставки на одной ветке сериализуются на уровне workflow.
+Pull request выполняет тесты и обе проверки качества. Push изменений лабораторной или её workflow в `main` и ручной запуск на `main` дополнительно собирают образ `linux/amd64`. При настроенном `DOCKERHUB_TOKEN` образ публикуется с тегом SHA коммита. Каждый запуск с настроенным Kubernetes передаёт один digest в staging и production. Параллельные доставки на одной ветке сериализуются на уровне workflow.
 
 | Артефакт Actions | Содержимое |
 | --- | --- |

@@ -8,6 +8,11 @@ on:
     branches: [main]
     paths: ["lab1/**", ".github/workflows/iris-ci.yml"]
   workflow_dispatch:
+    inputs:
+      deploy:
+        description: Deploy Iris to Kubernetes after the container smoke test
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -47,3 +52,69 @@ jobs:
           check_prediction 0 '[5.1,3.5,1.4,0.2]'
           check_prediction 1 '[7.0,3.2,4.7,1.4]'
           check_prediction 2 '[6.3,3.3,6.0,2.5]'
+
+  deploy:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.deploy
+    needs: container-smoke
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    concurrency:
+      group: iris-mlops-students
+      cancel-in-progress: false
+    steps:
+      - name: Check deployment configuration
+        id: kube-access
+        shell: bash
+        env:
+          KUBE_CONFIG_B64: ${{ secrets.KUBE_CONFIG_B64 }}
+        run: |
+          if [[ -z "$KUBE_CONFIG_B64" ]]; then
+            echo '::notice::Iris deployment skipped. Configure the KUBE_CONFIG_B64 repository secret.'
+            exit 0
+          fi
+          echo 'available=true' >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        if: steps.kube-access.outputs.available == 'true'
+        with:
+          persist-credentials: false
+      - name: Apply the Iris manifest and check the Service
+        if: steps.kube-access.outputs.available == 'true'
+        shell: bash
+        env:
+          KUBE_CONFIG_B64: ${{ secrets.KUBE_CONFIG_B64 }}
+        run: |
+          umask 077
+          KUBECONFIG=$(mktemp "$RUNNER_TEMP/iris-kubeconfig.XXXXXX")
+          export KUBECONFIG
+          port_forward_log="$RUNNER_TEMP/iris-port-forward.log"
+          port_forward_pid=''
+          cleanup() {
+            if [[ -n "$port_forward_pid" ]]; then
+              kill "$port_forward_pid" 2>/dev/null || true
+              wait "$port_forward_pid" 2>/dev/null || true
+              cat "$port_forward_log"
+            fi
+            rm -f "$KUBECONFIG" "$port_forward_log"
+          }
+          trap cleanup EXIT
+          printf '%s' "$KUBE_CONFIG_B64" | base64 --decode > "$KUBECONFIG"
+          unset KUBE_CONFIG_B64
+
+          kube=(kubectl --namespace mlops-students)
+          "${kube[@]}" apply --dry-run=server --request-timeout=30s -f lab1/lab1.yaml
+          "${kube[@]}" apply --request-timeout=30s -f lab1/lab1.yaml
+          "${kube[@]}" rollout status deployment/ovsyannikov-iris --timeout=180s
+          "${kube[@]}" port-forward --address 127.0.0.1 --pod-running-timeout=30s \
+            service/ovsyannikov-iris 18001:80 > "$port_forward_log" 2>&1 &
+          port_forward_pid=$!
+
+          base_url=http://127.0.0.1:18001
+          curl --fail --silent --show-error --max-time 3 \
+            --retry 30 --retry-all-errors --retry-delay 1 --retry-max-time 45 \
+            "$base_url/health" | jq -e '.status == "ready" and .model_version == "iris-v1"'
+          curl -fsS --max-time 3 "$base_url/predict" -H 'Content-Type: application/json' \
+            -d '{"features":[5.1,3.5,1.4,0.2]}' \
+            | jq -e '.class_id == 0 and .model_version == "iris-v1"'
+          curl -fsS --max-time 3 "$base_url/predict" -H 'Content-Type: application/json' \
+            -d '{"features":[6.3,3.3,6.0,2.5]}' \
+            | jq -e '.class_id == 2 and .model_version == "iris-v1"'
