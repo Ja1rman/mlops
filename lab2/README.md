@@ -21,7 +21,7 @@ make down
 
 ## CI/CD
 
-[GitHub Actions](../.github/workflows/search-delivery.yml) проверяет тесты и качество на pull request. Запуск из `main` собирает образ и публикует его с тегом SHA коммита при наличии `DOCKERHUB_TOKEN`. Секрет `KUBE_CONFIG_B64` содержит выданный kubeconfig в base64 и включает развёртывание. После добавления секрета нужен новый запуск **Run workflow** из `main`. Production требует ручного одобрения в GitHub Environment `production`.
+[GitHub Actions](../.github/workflows/search-delivery.yml) проверяет тесты и качество на pull request. Запуск из `main` собирает и публикует образ с тегом SHA коммита через `DOCKERHUB_TOKEN`. Для развёртывания отдельно нужен `KUBE_CONFIG_B64` с выданным kubeconfig в base64. После добавления секрета нужен новый запуск **Run workflow** из `main`. Production требует ручного одобрения в GitHub Environment `production`.
 
 В [запуске CI](https://github.com/Ja1rman/mlops/actions/runs/42413026661) прошли проверки и опубликован образ. В артефактах `search-quality` и `search-image` сохранены отчёты, метаданные и digest. Staging и production пропущены без kubeconfig. Проверки в учебном кластере отложены из-за тайм-аута API.
 
@@ -36,4 +36,4 @@ Helm использует namespace `mlops-students`, драйвер `configmap`
 ./scripts/deploy_release.sh production "$IMAGE_REPOSITORY" "$IMAGE_DIGEST" "$BUILD_REVISION"
 ```
 
-Перед продвижением проверяются живой staging, `/meta` и результат контрольного поиска. Режим `reverse_drill` в Actions или флаг `--reverse-drill` в скрипте переключает production на обратное ранжирование с тем же digest. При сбое проверки качества выполняется `helm rollback` к проверенной ревизии. Итоговая проверка сверяет образы Deployment, `/meta` и результаты поиска обоих окружений. Журналы `search-staging` и `search-production` сохраняют результаты проверок, а журнал production при учебном откате содержит историю Helm.
+На staging выполняется `helm test`. Проверка каждого окружения сохраняет образ Deployment, `/meta` и результат поиска. Режим `reverse_drill` в Actions или флаг `--reverse-drill` в скрипте переключает production на обратное ранжирование с тем же digest, выполняет `helm rollback` и проверяет восстановление `normal`. Результаты и история Helm сохраняются в журналах запуска.

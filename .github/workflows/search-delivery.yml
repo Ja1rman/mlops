@@ -42,8 +42,6 @@ jobs:
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.12"
-          cache: pip
-          cache-dependency-path: lab2/requirements.txt
       - run: make test quality negative
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
@@ -61,13 +59,7 @@ jobs:
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
           HAS_KUBECONFIG: ${{ secrets.KUBE_CONFIG_B64 != '' }}
         run: |
-          build_args=(--platform linux/amd64 --tag "$SEARCH_IMAGE_REPOSITORY:$GITHUB_SHA")
-          if [[ -z "$DOCKERHUB_TOKEN" ]]; then
-            docker buildx build "${build_args[@]}" --load .
-            echo 'Image built locally. Publication requires DOCKERHUB_TOKEN.' >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-
+          : "${DOCKERHUB_TOKEN:?Configure the DOCKERHUB_TOKEN Actions secret}"
           DOCKER_CONFIG=$(mktemp -d "$RUNNER_TEMP/search-docker.XXXXXX")
           export DOCKER_CONFIG
           trap 'docker logout >/dev/null 2>&1 || true; rm -rf "$DOCKER_CONFIG"' EXIT
@@ -75,17 +67,14 @@ jobs:
           unset DOCKERHUB_TOKEN
 
           metadata="$DOCKER_CONFIG/build.json"
-          docker buildx build "${build_args[@]}" --push --metadata-file "$metadata" \
-            --label "org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" .
+          docker buildx build --platform linux/amd64 --push --metadata-file "$metadata" \
+            --tag "$SEARCH_IMAGE_REPOSITORY:$GITHUB_SHA" .
           digest=$(jq -er '."containerimage.digest" | select(test("^sha256:[a-f0-9]{64}$"))' "$metadata")
-          docker buildx imagetools inspect "$SEARCH_IMAGE_REPOSITORY@$digest"
           jq -n --arg repository "$SEARCH_IMAGE_REPOSITORY" --arg tag "$GITHUB_SHA" \
             --arg digest "$digest" '{repository: $repository, tag: $tag, digest: $digest}' \
             | tee image.json
-          echo "digest=$digest" >> "$GITHUB_OUTPUT"
-          if [[ "$HAS_KUBECONFIG" == true ]]; then
-            echo 'deploy=true' >> "$GITHUB_OUTPUT"
-          else
+          printf 'digest=%s\ndeploy=%s\n' "$digest" "$HAS_KUBECONFIG" >> "$GITHUB_OUTPUT"
+          if [[ "$HAS_KUBECONFIG" != true ]]; then
             echo 'Staging and production are skipped until KUBE_CONFIG_B64 is configured.' >> "$GITHUB_STEP_SUMMARY"
           fi
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
