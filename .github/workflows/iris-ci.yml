@@ -31,7 +31,7 @@ jobs:
           base_url=http://127.0.0.1:18001
 
           curl --fail --silent --show-error --max-time 3 \
-            --retry 30 --retry-connrefused --retry-delay 1 --retry-max-time 45 \
+            --retry 30 --retry-all-errors --retry-delay 1 --retry-max-time 45 \
             "$base_url/health" | jq -e '.status == "ready" and .model_version == "iris-v1"'
           curl -fsS --max-time 3 "$base_url/live" | jq -e '.status == "alive"'
 

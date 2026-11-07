@@ -40,6 +40,8 @@ docker compose --profile negative down
 
 В Docker Compose на учебной ВМ один и тот же образ запустился в обоих режимах. `/readyz` вернул `ready` в каждом режиме. Для контрольного запроса первым результатом был `doc-rollback` в `normal` и `doc-security` в `reverse`. Semantic smoke завершился с кодом `2` для `reverse`.
 
+Образ, проверенный на ВМ, опубликован с тегом `v1`. Его [ссылка и digest](evidence/published-image.json) получены после `docker push`. Доступ к манифесту образа проверен без учётных данных.
+
 ## Развёртывание в учебном кластере
 
 В namespace `mlops-students` используются Helm releases `ovsyannikov-search-staging` и `ovsyannikov-search-prod`. Для работы на учебной ВМ понадобятся выданный kubeconfig, Helm 4, kubectl, jq и Python 3.10 или новее. Манифест использует `ClusterIP` и ссылку на образ формата `repository@sha256:digest`. Пустой или некорректный digest останавливает рендеринг.
