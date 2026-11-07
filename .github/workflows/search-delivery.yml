@@ -25,10 +25,14 @@ env:
   SEARCH_IMAGE_REPOSITORY: docker.io/jairman/ovsyannikov-runbook-search
 
 jobs:
-  quality:
-    runs-on: ubuntu-latest
+  build:
+    runs-on: ubuntu-24.04
+    outputs:
+      deploy: ${{ steps.image.outputs.deploy }}
+      digest: ${{ steps.image.outputs.digest }}
     defaults:
       run:
+        shell: bash
         working-directory: lab2
     steps:
       - &checkout
@@ -50,63 +54,45 @@ jobs:
             lab2/artifacts/quality.json
             lab2/artifacts/quality-reverse.json
 
-  build:
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    needs: quality
-    runs-on: ubuntu-latest
-    outputs:
-      deploy: ${{ steps.config.outputs.deploy }}
-      digest: ${{ steps.push.outputs.digest }}
-    steps:
-      - name: Check delivery configuration
-        id: config
-        shell: bash
+      - name: Build and publish image
+        id: image
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         env:
-          HAS_REGISTRY_TOKEN: ${{ secrets.DOCKERHUB_TOKEN != '' }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
           HAS_KUBECONFIG: ${{ secrets.KUBE_CONFIG_B64 != '' }}
         run: |
-          deploy=false
-          if [[ "$HAS_REGISTRY_TOKEN" != true ]]; then
-            echo 'Image build only. Add the DOCKERHUB_TOKEN Actions secret to enable publication.' >> "$GITHUB_STEP_SUMMARY"
-          elif [[ "$HAS_KUBECONFIG" != true ]]; then
-            echo 'Image publication enabled. Staging and production are skipped until KUBE_CONFIG_B64 is configured.' >> "$GITHUB_STEP_SUMMARY"
-          else
-            deploy=true
-            echo 'Image publication and Kubernetes delivery are enabled.' >> "$GITHUB_STEP_SUMMARY"
+          build_args=(--platform linux/amd64 --tag "$SEARCH_IMAGE_REPOSITORY:$GITHUB_SHA")
+          if [[ -z "$DOCKERHUB_TOKEN" ]]; then
+            docker buildx build "${build_args[@]}" --load .
+            echo 'Image built locally. Publication requires DOCKERHUB_TOKEN.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
           fi
-          printf 'publish=%s\ndeploy=%s\n' "$HAS_REGISTRY_TOKEN" "$deploy" >> "$GITHUB_OUTPUT"
-      - *checkout
-      - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
-      - uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
-        if: steps.config.outputs.publish == 'true'
-        with:
-          username: jairman
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Build container
-        id: push
-        uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4 # v6.17.0
-        with:
-          context: ./lab2
-          push: ${{ steps.config.outputs.publish == 'true' }}
-          platforms: linux/amd64
-          tags: ${{ env.SEARCH_IMAGE_REPOSITORY }}:${{ github.sha }}
-          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
-      - name: Record image digest
-        if: steps.config.outputs.publish == 'true'
-        shell: bash
-        env:
-          IMAGE_DIGEST: ${{ steps.push.outputs.digest }}
-        run: |
-          [[ "$IMAGE_DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
-          docker buildx imagetools inspect "$SEARCH_IMAGE_REPOSITORY@$IMAGE_DIGEST"
+
+          DOCKER_CONFIG=$(mktemp -d "$RUNNER_TEMP/search-docker.XXXXXX")
+          export DOCKER_CONFIG
+          trap 'docker logout >/dev/null 2>&1 || true; rm -rf "$DOCKER_CONFIG"' EXIT
+          printf '%s' "$DOCKERHUB_TOKEN" | docker login --username jairman --password-stdin
+          unset DOCKERHUB_TOKEN
+
+          metadata="$DOCKER_CONFIG/build.json"
+          docker buildx build "${build_args[@]}" --push --metadata-file "$metadata" \
+            --label "org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" .
+          digest=$(jq -er '."containerimage.digest" | select(test("^sha256:[a-f0-9]{64}$"))' "$metadata")
+          docker buildx imagetools inspect "$SEARCH_IMAGE_REPOSITORY@$digest"
           jq -n --arg repository "$SEARCH_IMAGE_REPOSITORY" --arg tag "$GITHUB_SHA" \
-            --arg digest "$IMAGE_DIGEST" '{repository: $repository, tag: $tag, digest: $digest}' \
+            --arg digest "$digest" '{repository: $repository, tag: $tag, digest: $digest}' \
             | tee image.json
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          if [[ "$HAS_KUBECONFIG" == true ]]; then
+            echo 'deploy=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'Staging and production are skipped until KUBE_CONFIG_B64 is configured.' >> "$GITHUB_STEP_SUMMARY"
+          fi
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: steps.config.outputs.publish == 'true'
+        if: steps.image.outputs.digest != ''
         with:
           name: search-image
-          path: image.json
+          path: lab2/image.json
 
   staging:
     if: needs.build.outputs.deploy == 'true'
@@ -124,10 +110,7 @@ jobs:
           IMAGE_DIGEST: ${{ needs.build.outputs.digest }}
           REVERSE_DRILL: ${{ inputs.reverse_drill }}
         run: |
-          if [[ -z "$KUBE_CONFIG_B64" ]]; then
-            echo "Configure the KUBE_CONFIG_B64 Actions secret" >&2
-            exit 1
-          fi
+          : "${KUBE_CONFIG_B64:?Configure the KUBE_CONFIG_B64 Actions secret}"
           umask 077
           export KUBECONFIG="$RUNNER_TEMP/search-kubeconfig"
           trap 'rm -f "$KUBECONFIG"' EXIT
