@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ЛираТех · База знаний</title>
+  <link rel="stylesheet" href="/static/site.css">
+  <script defer src="/static/portal.js"></script>
+</head>
+<body>
+  <header><strong>ЛираТех</strong> · База знаний</header>
+  <main>
+    <h1>Документы пилота «Линия»</h1>
+    <form id="query-form">
+      <label for="query">Поиск или вопрос по документам</label>
+      <input id="query" name="query" required minlength="2" maxlength="500" placeholder="Почему комитет отложил расширение пилота?">
+      <div class="filters">
+        <label>Раздел <select name="path" id="path"><option value="">Все разделы</option></select></label>
+        <label>Версия <input name="version" maxlength="32" placeholder="Например, 2.0"></label>
+        <label><input type="checkbox" name="include_archive"> Архив</label>
+        <label><input type="checkbox" name="include_drafts"> Черновики</label>
+        <label><input type="checkbox" name="private"> Только локальная модель</label>
+      </div>
+      <div class="actions">
+        <button type="submit" value="search">Найти документы</button>
+        <button type="submit" value="ask">Задать вопрос</button>
+      </div>
+    </form>
+    <section aria-live="polite" id="results"></section>
+    <section>
+      <h2>Разделы и редакции</h2>
+      <div id="tree"></div>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kb-mcp
+  namespace: itmo-student-03
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app: kb-mcp}
+  template:
+    metadata:
+      labels: {app: kb-mcp}
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: kb-mcp
+          image: docker.io/jairman/line-kb-mcp:2
+          imagePullPolicy: Always
+          env:
+            - name: MCP_TOKEN
+              valueFrom:
+                secretKeyRef: {name: line-mcp, key: MCP_TOKEN}
+          ports: [{name: http, containerPort: 8000}]
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 10
+          readinessProbe:
+            httpGet: {path: /readyz, port: http}
+            periodSeconds: 5
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {cpu: 300m, memory: 256Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kb-mcp
+  namespace: itmo-student-03
+spec:
+  selector: {app: kb-mcp}
+  ports: [{name: http, port: 8000, targetPort: http}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: kb-mcp
+  namespace: itmo-student-03
+spec:
+  podSelector:
+    matchLabels: {app: kb-mcp}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values: [portal, portal-demo]
+      ports: [{protocol: TCP, port: 8000}]

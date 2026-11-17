@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloud-mock
+  namespace: itmo-student-03
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app: cloud-mock}
+  template:
+    metadata:
+      labels: {app: cloud-mock}
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: mock
+          image: docker.io/jairman/line-cloud-mock:2
+          imagePullPolicy: Always
+          ports: [{name: http, containerPort: 8000}]
+          readinessProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 5
+          resources:
+            requests: {cpu: 25m, memory: 32Mi}
+            limits: {cpu: 100m, memory: 64Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cloud-mock
+  namespace: itmo-student-03
+spec:
+  selector: {app: cloud-mock}
+  ports: [{name: http, port: 8000, targetPort: http}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: portal-demo
+  namespace: itmo-student-03
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app: portal-demo}
+  template:
+    metadata:
+      labels: {app: portal-demo}
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: portal
+          image: docker.io/jairman/line-portal:2
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: portal-config
+          env:
+            - name: LOCAL_MODEL
+              valueFrom:
+                configMapKeyRef:
+                  name: llm-local
+                  key: LOCAL_MODEL
+            - name: MCP_TOKEN
+              valueFrom:
+                secretKeyRef: {name: line-mcp, key: MCP_TOKEN}
+            - name: CLOUD_BASE_URL
+              value: http://cloud-mock:8000/v1
+            - name: LLM7_API_KEY
+              value: demo-only
+          ports: [{name: http, containerPort: 8000}]
+          livenessProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 10
+          readinessProbe:
+            httpGet: {path: /readyz, port: http}
+            periodSeconds: 5
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {cpu: 300m, memory: 256Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: portal-demo
+  namespace: itmo-student-03
+spec:
+  selector: {app: portal-demo}
+  ports: [{name: http, port: 8000, targetPort: http}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cloud-mock
+  namespace: itmo-student-03
+spec:
+  podSelector:
+    matchLabels: {app: cloud-mock}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels: {app: portal-demo}
+      ports: [{protocol: TCP, port: 8000}]

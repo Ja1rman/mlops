@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: portal-config
+  namespace: itmo-student-03
+data:
+  MCP_URL: http://kb-mcp:8000/mcp
+  LOCAL_BASE_URL: http://llm-local:11434/v1
+  CLOUD_BASE_URL: https://api.llm7.io/v1
+  CLOUD_MODEL: default
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: portal
+  namespace: itmo-student-03
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app: portal}
+  template:
+    metadata:
+      labels: {app: portal}
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: portal
+          image: docker.io/jairman/line-portal:2
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: portal-config
+          env:
+            - name: LOCAL_MODEL
+              valueFrom:
+                configMapKeyRef:
+                  name: llm-local
+                  key: LOCAL_MODEL
+            - name: MCP_TOKEN
+              valueFrom:
+                secretKeyRef: {name: line-mcp, key: MCP_TOKEN}
+            - name: LLM7_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: llm7
+                  key: LLM7_API_KEY
+                  optional: true
+          ports: [{name: http, containerPort: 8000}]
+          livenessProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 10
+          readinessProbe:
+            httpGet: {path: /readyz, port: http}
+            periodSeconds: 5
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {cpu: 300m, memory: 256Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: portal
+  namespace: itmo-student-03
+spec:
+  selector: {app: portal}
+  ports: [{name: http, port: 8000, targetPort: http}]

@@ -1,0 +1,18 @@
+:root { color-scheme: light dark; font: 16px/1.55 system-ui, sans-serif; }
+body { margin: 0; }
+header { border-bottom: 1px solid #77858d; padding: 1rem max(1rem, calc((100% - 56rem) / 2)); }
+main { max-width: 56rem; margin: auto; padding: 0 1rem 3rem; }
+h1, h2, p { margin-block: 0.8rem; }
+form, article { border: 1px solid #77858d; border-radius: 0.4rem; padding: 1rem; }
+#query { box-sizing: border-box; width: 100%; margin: 0.4rem 0; }
+input, select, button { font: inherit; }
+button, input:not([type="checkbox"]), select { padding: 0.3rem 0.6rem; }
+.filters, .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.8rem; margin-top: 0.7rem; }
+.filters input[name="version"] { width: 8rem; }
+article { margin: 0.7rem 0; }
+article h3 { margin: 0; }
+details { margin-left: 1rem; }
+summary { cursor: pointer; }
+.meta { font-size: 0.9rem; }
+.document-text, .answer { white-space: pre-wrap; }
+section:target { outline: 2px solid #608fbd; outline-offset: 0.4rem; }

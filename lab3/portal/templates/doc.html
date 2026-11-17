@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ doc.title }} · ЛираТех</title>
+  <link rel="stylesheet" href="/static/site.css">
+</head>
+<body>
+  <header><a href="/">ЛираТех · База знаний</a></header>
+  <main>
+    <p class="meta">{{ doc.path }}</p>
+    <h1>{{ doc.title }}</h1>
+    <p class="meta">{{ doc.doc_id }} · версия {{ doc.version }} · {{ {"active": "Действует", "archived": "Архив", "draft": "Черновик"}.get(doc.status, doc.status) }} · {{ doc.date }}</p>
+    {% for section in doc.sections %}
+    <section id="{{ section.anchor }}">
+      <h2>{{ section.heading }}</h2>
+      <p class="document-text">{{ section.text }}</p>
+    </section>
+    {% endfor %}
+    {% if doc.links %}
+    <section>
+      <h2>Связанные документы</h2>
+      <ul>
+        {% for link in doc.links %}
+        <li><a href="/docs/{{ link.doc_id }}/{{ link.version }}{% if link.anchor %}#{{ link.anchor }}{% endif %}">{{ link.doc_id }} вер. {{ link.version }}</a></li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+  </main>
+</body>
+</html>
