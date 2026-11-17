@@ -1,0 +1,41 @@
+{
+  "namespace": "itmo-student-03",
+  "deployments": [
+    {
+      "name": "llm-local",
+      "replicas": 1,
+      "ready": 1,
+      "image": "docker.io/alpine/ollama:0.40.16"
+    },
+    {
+      "name": "kb-mcp",
+      "replicas": 1,
+      "ready": 1,
+      "image": "docker.io/jairman/line-kb-mcp:2"
+    },
+    {
+      "name": "portal",
+      "replicas": 1,
+      "ready": 1,
+      "image": "docker.io/jairman/line-portal:3"
+    },
+    {
+      "name": "portal-demo",
+      "replicas": 1,
+      "ready": 1,
+      "image": "docker.io/jairman/line-portal:3"
+    },
+    {
+      "name": "cloud-mock",
+      "replicas": 1,
+      "ready": 1,
+      "image": "docker.io/jairman/line-cloud-mock:2"
+    }
+  ],
+  "pvc": {
+    "name": "llm-local-models",
+    "storageClass": "cloudru-ssd",
+    "phase": "Bound",
+    "capacity": "2Gi"
+  }
+}

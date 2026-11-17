@@ -61,6 +61,13 @@ class PortalTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(calls[0][2], "Bearer demo-only")
         self.assertIsNone(calls[1][2])
 
+    async def test_local_route_returns_document_text_instead_of_generated_claims(self):
+        result, _ = await self.request(httpx.Response(429), response("Лимит 6 000 [1]"), card())
+        self.assertEqual(result["route"], "local")
+        self.assertNotIn("6 000", result["answer"])
+        self.assertIn("5 000", result["answer"])
+        self.assertEqual(result["sources"][0]["url"], "/docs/M-05/2.0#s01")
+
     async def test_cloud_privacy_controls(self):
         for hit, private, key, expected in [
             (card(), True, "demo-only", "private_mode"),
@@ -125,6 +132,29 @@ class ContractTests(unittest.TestCase):
         self.assertTrue(result[0].startswith("(Архив)"))
         self.assertIsNone(check_answer("Факт без ссылки.\nДругой факт [1]", fragments))
         self.assertIsNone(check_answer("Факт [1] https://example.org", fragments))
+
+    def test_missing_marker_can_be_recovered_from_unique_exact_excerpt(self):
+        fragment_text = "Сейчас в закрытый канал помещается до 5 000 активных подписчиков."
+        hit = card()
+        hit["chunks"][0]["text"] = fragment_text + " Непринятые приглашения место не занимают."
+        fragments = select_fragments([hit], "Лимит")
+        answer, sources = check_answer(fragment_text, fragments)
+        self.assertEqual(answer, fragment_text + " [1]")
+        self.assertEqual(sources[0]["url"], "/docs/M-05/2.0#s01")
+        self.assertIsNone(check_answer(fragment_text.replace("5 000", "6 000"), fragments))
+        self.assertIsNone(check_answer(fragment_text + " [9]", fragments))
+        self.assertIsNone(check_answer("[1]", fragments))
+        self.assertIsNone(check_answer("НЕДОСТАТОЧНО ДАННЫХ", fragments))
+        ambiguous = select_fragments([hit, hit], "Лимит")
+        self.assertIsNone(check_answer(fragment_text, ambiguous))
+
+    def test_local_marker_and_abstention(self):
+        fragments = select_fragments([card(status="archived")], "Лимит")
+        answer, sources = check_answer("[1]", fragments, extractive=True)
+        self.assertIn("(Архив) До 5 000 активных подписчиков.", answer)
+        self.assertEqual(sources[0]["url"], "/docs/M-05/2.0#s01")
+        self.assertIsNone(check_answer("Недостаточно данных. [1]", fragments, extractive=True))
+        self.assertIsNone(check_answer("[9]", fragments, extractive=True))
 
     def test_quota_and_rate_limit_have_distinct_reasons(self):
         quota = provider_failure(httpx.Response(429, json={"error": {"code": "insufficient_quota"}}))

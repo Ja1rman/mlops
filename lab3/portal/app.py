@@ -196,7 +196,7 @@ class Portal:
             text = await self.local.complete(
                 self.model_http, config.local_url, config.local_model, messages, config.local_timeout,
             )
-            checked = check_answer(text, fragments)
+            checked = check_answer(text, fragments, extractive=True)
             if checked:
                 trace.route = "local"
                 return checked

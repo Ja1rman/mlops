@@ -1,0 +1,14 @@
+{
+  "tools": [
+    "get_doc",
+    "list_sections",
+    "search_docs"
+  ],
+  "sections": 6,
+  "subsections": 12,
+  "records": 36,
+  "index_version": "306f911dc3e7",
+  "active": "M-05@2.0#s01",
+  "archived": "M-05@1.1",
+  "missing_version_rejected": true
+}
