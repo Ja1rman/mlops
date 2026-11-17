@@ -51,7 +51,7 @@ spec:
       automountServiceAccountToken: false
       containers:
         - name: portal
-          image: docker.io/jairman/line-portal:3
+          image: docker.io/jairman/line-portal:4
           imagePullPolicy: Always
           envFrom:
             - configMapRef:

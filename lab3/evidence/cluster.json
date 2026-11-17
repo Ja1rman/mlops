@@ -17,13 +17,13 @@
       "name": "portal",
       "replicas": 1,
       "ready": 1,
-      "image": "docker.io/jairman/line-portal:3"
+      "image": "docker.io/jairman/line-portal:4"
     },
     {
       "name": "portal-demo",
       "replicas": 1,
       "ready": 1,
-      "image": "docker.io/jairman/line-portal:3"
+      "image": "docker.io/jairman/line-portal:4"
     },
     {
       "name": "cloud-mock",

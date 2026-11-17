@@ -52,12 +52,13 @@ class PortalTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["sources"][0]["url"], "/docs/M-05/2.0#s01")
         self.assertEqual([host for host, *_ in calls], ["mock"])
 
-    async def test_rate_limit_falls_back_with_same_messages(self):
+    async def test_rate_limit_falls_back_with_same_question_and_context(self):
         result, calls = await self.request(httpx.Response(429), response(), card())
         self.assertEqual(result["route"], "local")
         self.assertEqual(result["reason"], "cloud_rate_limit")
         self.assertEqual([host for host, *_ in calls], ["mock", "local"])
-        self.assertEqual(calls[0][1], calls[1][1])
+        self.assertEqual(calls[0][1][1]["content"].rsplit("\n", 1)[0], calls[1][1][1]["content"].rsplit("\n", 1)[0])
+        self.assertIn("Верни только номера", calls[1][1][0]["content"])
         self.assertEqual(calls[0][2], "Bearer demo-only")
         self.assertIsNone(calls[1][2])
 

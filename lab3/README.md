@@ -43,7 +43,7 @@ kubectl -n itmo-student-03 rollout status deploy/portal
 
 [Line RAG CI](../.github/workflows/line-ci.yml) запускает тесты поиска и маршрутизации, проверяет манифесты, собирает образы и проверяет MCP и портал в Docker. Токены провайдера и kubeconfig для CI не требуются.
 
-В кластере готовы [пять Deployment и PVC](evidence/cluster.json). Проверены независимый [MCP-клиент](evidence/mcp.json), [16 поисковых сценариев](evidence/search.json) и [генерация Ollama](evidence/ollama.json). При серии запросов `kubectl top pod` показал около `1,5 CPU` и `1152 MiB` у Pod модели. До первого запроса — `3m CPU` и `10 MiB`.
+В кластере готовы [пять Deployment и PVC](evidence/cluster.json). Проверены независимый [MCP-клиент](evidence/mcp.json), [16 поисковых сценариев](evidence/search.json), [генерация Ollama](evidence/ollama.json) и [ответы на К01–К08](evidence/questions.json). При серии запросов `kubectl top pod` показал около `1,5 CPU` и `1152 MiB` у Pod модели. До первого запроса — `3m CPU` и `10 MiB`.
 
 Независимая проверка `tools/list` и `tools/call` использует `python -m kb.smoke http://127.0.0.1:18001/mcp` из `lab3`, зависимости `kb/requirements.txt` и токен `MCP_TOKEN`. Для доступа нужен локальный проброс `kubectl -n itmo-student-03 port-forward svc/kb-mcp 18001:8000`.
 

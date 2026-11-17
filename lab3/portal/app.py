@@ -194,7 +194,8 @@ class Portal:
         trace.local_calls += 1
         try:
             text = await self.local.complete(
-                self.model_http, config.local_url, config.local_model, messages, config.local_timeout,
+                self.model_http, config.local_url, config.local_model,
+                messages_for(filters.query, fragments, select_only=True), config.local_timeout,
             )
             checked = check_answer(text, fragments, extractive=True)
             if checked:
