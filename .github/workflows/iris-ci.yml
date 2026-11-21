@@ -19,7 +19,8 @@ permissions:
 
 jobs:
   iris:
-    runs-on: ubuntu-24.04
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, Linux, X64, mlops-build]
     timeout-minutes: 15
     concurrency:
       group: iris-${{ github.ref == 'refs/heads/main' && inputs.deploy && 'deploy' || github.run_id }}

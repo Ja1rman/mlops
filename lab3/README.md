@@ -50,4 +50,4 @@ curl -fsS http://127.0.0.1:18083/control -H 'Content-Type: application/json' -d 
 curl -fsS http://127.0.0.1:18083/control -H 'Content-Type: application/json' -d '{"mode":"ok"}'
 ```
 
-Тесты поиска, MCP и маршрутизации запускаются в [CI](../.github/workflows/line-ci.yml). Результаты проверок в кластере, К01–К08 и переключения имитатор → Ollama → имитатор сохранены в [evidence/](evidence/).
+[CI](../.github/workflows/line-ci.yml) проверяет поиск, MCP и маршрутизацию; из `main` публикует образы и развёртывает сервисы в кластере. Результаты проверок в кластере, К01–К08 и переключения имитатор → Ollama → имитатор сохранены в [evidence/](evidence/).
