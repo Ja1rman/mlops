@@ -32,7 +32,7 @@ jobs:
       - name: Check Iris API in the container
         shell: bash
         run: |
-          docker run --detach --name iris-ci --read-only --memory=256m --cpus=0.5 \
+          docker run --detach --name iris-ci --read-only --memory=256m --cpus=0.3 \
             --publish 127.0.0.1:18001:8000 iris-ci
           trap 'docker logs iris-ci || true; docker rm --force iris-ci' EXIT
           bash lab1/smoke.sh http://127.0.0.1:18001
@@ -61,7 +61,7 @@ jobs:
           printf '%s' "$KUBE_CONFIG_B64" | base64 --decode > "$KUBECONFIG"
           unset KUBE_CONFIG_B64
 
-          kube=(kubectl --namespace mlops-students)
+          kube=(kubectl --namespace itmo-student-03)
           "${kube[@]}" apply --dry-run=server --request-timeout=30s -f lab1/lab1.yaml
           "${kube[@]}" apply --request-timeout=30s -f lab1/lab1.yaml
           "${kube[@]}" rollout status deployment/ovsyannikov-iris --timeout=180s

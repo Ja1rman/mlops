@@ -88,6 +88,32 @@ class PortalTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["sources"][0]["doc_id"], "M-05")
         self.assertIn("Недостаточно", result["answer"])
 
+    async def test_unbound_cloud_answer_opens_cooldown(self):
+        calls = []
+
+        def dispatch(request):
+            calls.append(request.url.host)
+            return response("Неподтверждённый результат [9]" if request.url.host == "mock" else "[1]")
+
+        config = Settings()
+        config.cloud_url = "http://mock/v1"
+        config.local_url = "http://local/v1"
+        config.cloud_key = "demo-only"
+        async with httpx.AsyncClient(transport=httpx.MockTransport(dispatch)) as http:
+            portal = Portal(config, http, http)
+            portal.tool = AsyncMock(return_value={"index_version": "v1", "cards": [card()]})
+            filters = Filters(query="Лимит подписчиков")
+            first = await portal.answer(filters, Trace("first"))
+            second_trace = Trace("second")
+            second = await portal.answer(filters, second_trace)
+
+        self.assertEqual(first["route"], "local")
+        self.assertEqual(first["reason"], "cloud_unsupported_answer")
+        self.assertEqual(second["route"], "local")
+        self.assertEqual(second["reason"], "cloud_cooldown")
+        self.assertEqual(second_trace.cloud_calls, 0)
+        self.assertEqual(calls, ["mock", "local", "local"])
+
     async def test_empty_search_avoids_models(self):
         result, calls = await self.request(response(), response())
         self.assertEqual(result["route"], "search_only")

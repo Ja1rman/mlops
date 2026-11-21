@@ -183,7 +183,7 @@ class Portal:
                     if checked:
                         trace.route, trace.reason = "cloud", "cloud_ok"
                         return checked
-                    trace.reason = "cloud_unsupported_answer"
+                    raise ProviderFailure("cloud_unsupported_answer")
                 except ProviderFailure as error:
                     trace.reason, cooldown = error.reason, error.cooldown
                 finally:

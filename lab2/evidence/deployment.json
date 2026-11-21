@@ -1,0 +1,53 @@
+{
+  "namespace": "itmo-student-03",
+  "checked_at_utc": "2026-11-21T08:33:04+00:00",
+  "staging": {
+    "deployment": "ovsyannikov-search-staging-mlops-search",
+    "image": "docker.io/jairman/ovsyannikov-runbook-search@sha256:77eb17b9467e910388975ac3fcd256de02c9d4a3f7eeaa8a45018fed71658ac4",
+    "meta": {
+      "service": "runbook-search-api",
+      "service_version": "1.2.0",
+      "build_revision": "6ea9d740732f894189be3babece07aab57e12ce8",
+      "image_digest": "sha256:77eb17b9467e910388975ac3fcd256de02c9d4a3f7eeaa8a45018fed71658ac4",
+      "environment": "staging",
+      "index_version": "147d82cfd724",
+      "model_type": "tfidf-word-char-cosine",
+      "ranking_mode": "normal",
+      "documents": 12
+    },
+    "semantic_top_id": "doc-rollback"
+  },
+  "production": {
+    "deployment": "ovsyannikov-search-prod-mlops-search",
+    "image": "docker.io/jairman/ovsyannikov-runbook-search@sha256:77eb17b9467e910388975ac3fcd256de02c9d4a3f7eeaa8a45018fed71658ac4",
+    "meta": {
+      "service": "runbook-search-api",
+      "service_version": "1.2.0",
+      "build_revision": "6ea9d740732f894189be3babece07aab57e12ce8",
+      "image_digest": "sha256:77eb17b9467e910388975ac3fcd256de02c9d4a3f7eeaa8a45018fed71658ac4",
+      "environment": "production",
+      "index_version": "147d82cfd724",
+      "model_type": "tfidf-word-char-cosine",
+      "ranking_mode": "normal",
+      "documents": 12
+    },
+    "semantic_top_id": "doc-rollback"
+  },
+  "production_helm_history": [
+    {
+      "revision": 1,
+      "status": "superseded",
+      "description": "Install complete"
+    },
+    {
+      "revision": 2,
+      "status": "superseded",
+      "description": "Upgrade complete"
+    },
+    {
+      "revision": 3,
+      "status": "deployed",
+      "description": "Rollback to 1"
+    }
+  ]
+}

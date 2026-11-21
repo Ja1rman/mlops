@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: ovsyannikov-iris
-  namespace: mlops-students
+  namespace: itmo-student-03
   labels:
     app.kubernetes.io/name: iris
     app.kubernetes.io/instance: ovsyannikov-iris
@@ -14,7 +14,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ovsyannikov-iris
-  namespace: mlops-students
+  namespace: itmo-student-03
   labels:
     app.kubernetes.io/name: iris
     app.kubernetes.io/instance: ovsyannikov-iris
@@ -66,7 +66,7 @@ spec:
               cpu: 100m
               memory: 128Mi
             limits:
-              cpu: 500m
+              cpu: 300m
               memory: 256Mi
           securityContext:
             allowPrivilegeEscalation: false
@@ -78,7 +78,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: ovsyannikov-iris
-  namespace: mlops-students
+  namespace: itmo-student-03
   labels:
     app.kubernetes.io/name: iris
     app.kubernetes.io/instance: ovsyannikov-iris

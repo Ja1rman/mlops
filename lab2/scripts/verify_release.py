@@ -94,7 +94,7 @@ def forward_service(namespace: str, release: str, port: int):
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--release", required=True)
-    parser.add_argument("--namespace", default="mlops-students")
+    parser.add_argument("--namespace", default="itmo-student-03")
     parser.add_argument("--port", type=int, default=0, help="local port, 0 for an available port")
     parser.add_argument("--expect-digest")
     parser.add_argument("--expect-environment")

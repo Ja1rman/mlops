@@ -10,11 +10,11 @@ image:
 
 resources:
   requests:
-    cpu: 150m
-    memory: 256Mi
+    cpu: 100m
+    memory: 128Mi
   limits:
-    cpu: 750m
-    memory: 768Mi
+    cpu: 300m
+    memory: 320Mi
 
 service:
   port: 80

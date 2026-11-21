@@ -35,14 +35,14 @@ docker run --rm -p 127.0.0.1:18000:8000 "$IMAGE"
 
 ## Kubernetes
 
-Манифест создаёт ConfigMap, Deployment и Service `ovsyannikov-iris` в `mlops-students`. Нужен рабочий `KUBECONFIG`. [Манифест](lab1.yaml)
+Манифест создаёт ConfigMap, Deployment и Service `ovsyannikov-iris` в `itmo-student-03`. Нужен рабочий `KUBECONFIG`. [Манифест](lab1.yaml)
 
 ```bash
 kubectl apply --dry-run=client -f lab1.yaml
 kubectl apply --dry-run=server -f lab1.yaml
 kubectl apply -f lab1.yaml
-kubectl -n mlops-students rollout status deploy/ovsyannikov-iris --timeout=180s
-kubectl -n mlops-students port-forward svc/ovsyannikov-iris 18001:80
+kubectl -n itmo-student-03 rollout status deploy/ovsyannikov-iris --timeout=180s
+kubectl -n itmo-student-03 port-forward svc/ovsyannikov-iris 18001:80
 ```
 
 Проверка через Service — `bash smoke.sh http://127.0.0.1:18001` в другом терминале.

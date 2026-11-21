@@ -1,11 +1,12 @@
 {
+  "checked_at": "2026-11-21T08:33:21.729230+00:00",
   "namespace": "itmo-student-03",
   "deployments": [
     {
-      "name": "llm-local",
+      "name": "cloud-mock",
       "replicas": 1,
       "ready": 1,
-      "image": "docker.io/alpine/ollama:0.40.16"
+      "image": "docker.io/jairman/line-cloud-mock:2"
     },
     {
       "name": "kb-mcp",
@@ -14,22 +15,22 @@
       "image": "docker.io/jairman/line-kb-mcp:2"
     },
     {
+      "name": "llm-local",
+      "replicas": 1,
+      "ready": 1,
+      "image": "docker.io/alpine/ollama:0.40.16"
+    },
+    {
       "name": "portal",
       "replicas": 1,
       "ready": 1,
-      "image": "docker.io/jairman/line-portal:4"
+      "image": "docker.io/jairman/line-portal:5"
     },
     {
       "name": "portal-demo",
       "replicas": 1,
       "ready": 1,
-      "image": "docker.io/jairman/line-portal:4"
-    },
-    {
-      "name": "cloud-mock",
-      "replicas": 1,
-      "ready": 1,
-      "image": "docker.io/jairman/line-cloud-mock:2"
+      "image": "docker.io/jairman/line-portal:5"
     }
   ],
   "pvc": {

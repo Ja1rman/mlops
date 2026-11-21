@@ -23,7 +23,7 @@ spec:
             periodSeconds: 5
           resources:
             requests: {cpu: 25m, memory: 32Mi}
-            limits: {cpu: 100m, memory: 64Mi}
+            limits: {cpu: 50m, memory: 64Mi}
 ---
 apiVersion: v1
 kind: Service
@@ -51,7 +51,7 @@ spec:
       automountServiceAccountToken: false
       containers:
         - name: portal
-          image: docker.io/jairman/line-portal:4
+          image: docker.io/jairman/line-portal:5
           imagePullPolicy: Always
           envFrom:
             - configMapRef:
@@ -70,6 +70,10 @@ spec:
             - name: LLM7_API_KEY
               value: demo-only
           ports: [{name: http, containerPort: 8000}]
+          startupProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 2
+            failureThreshold: 60
           livenessProbe:
             httpGet: {path: /health, port: http}
             periodSeconds: 10
@@ -78,7 +82,7 @@ spec:
             periodSeconds: 5
           resources:
             requests: {cpu: 100m, memory: 128Mi}
-            limits: {cpu: 300m, memory: 256Mi}
+            limits: {cpu: 100m, memory: 128Mi}
 ---
 apiVersion: v1
 kind: Service

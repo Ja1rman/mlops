@@ -26,7 +26,7 @@ if [[ -n "$drill" && ( "$drill" != "--reverse-drill" || "$environment" != "produ
 fi
 
 export HELM_DRIVER=configmap
-namespace=mlops-students
+namespace=itmo-student-03
 chart=helm/mlops-search
 helm_args=(--namespace "$namespace")
 values=(
@@ -43,7 +43,8 @@ latest_deployed_revision() {
 
 upgrade() {
     helm upgrade --install "$release" "$chart" "${helm_args[@]}" "${values[@]}" \
-        --reset-values --set-string "rankingMode=$1" --wait=legacy --timeout 5m
+        --reset-values --set-string "rankingMode=$1" --wait=legacy --timeout 5m || return 1
+    kubectl -n "$namespace" rollout status "deployment/$release-mlops-search" --timeout=5m
 }
 
 verify() {
@@ -103,6 +104,7 @@ if [[ "$drill" == "--reverse-drill" ]]; then
     fi
     echo "Rolling back $release to revision $known_good"
     helm rollback "$release" "$known_good" "${helm_args[@]}" --wait=legacy --timeout 5m
+    kubectl -n "$namespace" rollout status "deployment/$release-mlops-search" --timeout=5m
     verify normal
     echo "Helm history after rollback"
     helm history "$release" "${helm_args[@]}"

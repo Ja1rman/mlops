@@ -21,7 +21,7 @@ make down
 
 [Workflow](../.github/workflows/search-delivery.yml) запускает тесты и проверки качества на pull request, а из `main` собирает и публикует образ. Для публикации нужен Actions secret `DOCKERHUB_TOKEN`, для Kubernetes — `KUBE_CONFIG_B64` с kubeconfig в base64. Без kubeconfig развёртывание пропускается. После добавления секрета нужен новый запуск workflow.
 
-Staging и production используют один digest. Production защищён ручным одобрением в GitHub Environment `production`. Helm работает в `mlops-students` с драйвером `configmap` и релизами `ovsyannikov-search-staging` и `ovsyannikov-search-prod`.
+Staging и production используют один digest. Production защищён ручным одобрением в GitHub Environment `production`. Helm работает в `itmo-student-03` с драйвером `configmap` и релизами `ovsyannikov-search-staging` и `ovsyannikov-search-prod`.
 
 Ручной запуск с рабочим `KUBECONFIG`. Переменные образа берутся из полей `repository`, `digest` и `tag` файла `image.json` в артефакте `search-image`.
 
@@ -30,4 +30,4 @@ Staging и production используют один digest. Production защи�
 ./scripts/deploy_release.sh production "$IMAGE_REPOSITORY" "$IMAGE_DIGEST" "$BUILD_REVISION" --reverse-drill
 ```
 
-`reverse_drill` в Actions или `--reverse-drill` в скрипте проверяет ухудшение качества, откат к рабочей Helm-ревизии и восстановление `normal`. В артефактах CI сохраняются отчёты качества, digest, `/meta`, результаты поиска и история отката. Сборка и публикация проверены, развёртывание в учебном кластере пока не подтверждено.
+`reverse_drill` в Actions или `--reverse-drill` в скрипте проверяет ухудшение качества, откат к рабочей Helm-ревизии и восстановление `normal`. В артефактах CI сохраняются отчёты качества, digest, `/meta`, результаты поиска и история отката. В учебном кластере подтверждены одинаковый digest staging и production, успешный поиск и откат production к рабочей ревизии. [Результаты проверки](evidence/deployment.json)
