@@ -88,7 +88,7 @@ jobs:
   staging:
     if: needs.build.outputs.deploy == 'true'
     needs: build
-    runs-on: [self-hosted, Linux, X64, lonecraft-back, mlops]
+    runs-on: [self-hosted, Linux, X64, mlops-build]
     steps: &deploy_steps
       - *checkout
       - name: Deploy and verify
@@ -118,6 +118,6 @@ jobs:
 
   production:
     needs: [build, staging]
-    runs-on: [self-hosted, Linux, X64, lonecraft-back, mlops]
+    runs-on: [self-hosted, Linux, X64, mlops-build]
     environment: production
     steps: *deploy_steps

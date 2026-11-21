@@ -92,7 +92,7 @@ jobs:
   deploy:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: check
-    runs-on: [self-hosted, Linux, X64, lonecraft-back, mlops]
+    runs-on: [self-hosted, Linux, X64, mlops-build]
     timeout-minutes: 10
     concurrency: line-deploy
     steps:
